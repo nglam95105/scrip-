@@ -14,7 +14,7 @@ local Scripts = {
 
 --// Tạo biến môi trường
 local fetcher, urls = {}, {}
-local _ENV = (getgenv or getrenv or getfenv)()
+local _ENV = (getgenv and getgenv()) or (getrenv and getrenv()) or getfenv()
 
 --// URL GitHub
 urls.Owner = "https://raw.githubusercontent.com/tlredz/"
@@ -64,7 +64,7 @@ do
         error(Text, 2)
     end
     local function formatUrl(Url)
-        for key, path in urls do
+        for key, path in pairs(urls) do
             if Url:find("{" .. key .. "}") then
                 return select(1, Url:gsub("{" .. key .. "}", path))
             end
@@ -78,14 +78,14 @@ do
         if success then
             return response
         else
-            CreateMessageError(`[1] [{ identifyexecutor() }] failed to get http/url/raw: { Url }\n>>{ response }<<`)
+            CreateMessageError(string.format("[1] [%s] failed to get http/url/raw: %s\n>>%s<<", identifyexecutor(), Url, response))
         end
     end
-    function fetcher.load(Url: string, concat: string?)
-        local raw = fetcher.get(Url) .. (if concat then concat else "")
+    function fetcher.load(Url, concat)
+        local raw = fetcher.get(Url) .. (concat or "")
         local runFunction, errorText = loadstring(raw)
         if type(runFunction) ~= "function" then
-            CreateMessageError(`[2] [{ identifyexecutor() }] syntax error: { Url }\n>>{ errorText }<<`)
+            CreateMessageError(string.format("[2] [%s] syntax error: %s\n>>%s<<", identifyexecutor(), Url, errorText))
         else
             return runFunction
         end
@@ -102,9 +102,9 @@ local function IsPlace(Script)
 end
 
 --// Nếu đúng game thì auto load
-for _, Script in Scripts do
+for _, Script in ipairs(Scripts) do
     if IsPlace(Script) then
-        return fetcher.load("{Repository}Games/" .. Script.UrlPath)(fetcher, ...)
+        return fetcher.load(urls.Repository .. "Games/" .. Script.UrlPath)(fetcher, ...)
     end
 end
 
@@ -129,7 +129,7 @@ for _, sc in ipairs(Scripts) do
     ScriptTab:AddButton({
         Name = sc.Name,
         Callback = function()
-            fetcher.load("{Repository}Games/" .. sc.UrlPath)(fetcher, ...)
+            fetcher.load(urls.Repository .. "Games/" .. sc.UrlPath)(fetcher, ...)
         end
     })
 end
